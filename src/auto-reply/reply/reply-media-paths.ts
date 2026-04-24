@@ -60,8 +60,8 @@ function resolveReplyMediaMaxBytes(params: {
     : MEDIA_MAX_BYTES;
 }
 
-function formatBlockedReplyMediaWarning(error: unknown): string {
-  return error instanceof Error ? `⚠️ Media failed: ${error.message}` : "⚠️ Media failed.";
+function formatBlockedReplyMediaWarning(): string {
+  return "⚠️ Media failed.";
 }
 
 export function createReplyMediaPathNormalizer(params: {
@@ -228,9 +228,7 @@ export function createReplyMediaPathNormalizer(params: {
     }
 
     if (normalizedMedia.length === 0) {
-      const warning = firstMediaDropError
-        ? formatBlockedReplyMediaWarning(firstMediaDropError)
-        : undefined;
+      const warning = firstMediaDropError ? formatBlockedReplyMediaWarning() : undefined;
       return {
         ...payload,
         text: warning ? (payload.text ? `${payload.text}\n${warning}` : warning) : payload.text,

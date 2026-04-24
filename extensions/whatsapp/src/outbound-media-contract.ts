@@ -1,3 +1,4 @@
+import path from "node:path";
 import { formatError } from "./session-errors.js";
 import { sleep } from "./text-runtime.js";
 
@@ -23,6 +24,12 @@ export type CanonicalWhatsAppLoadedMedia = {
 
 export function normalizeWhatsAppPayloadText(text: string | undefined): string {
   return text?.trimStart() ?? "";
+}
+
+export function normalizeWhatsAppPayloadTextPreservingIndentation(
+  text: string | undefined,
+): string {
+  return (text ?? "").replace(/^(?:[ \t]*\r?\n)+/, "");
 }
 
 export function resolveWhatsAppOutboundMediaUrls(
@@ -72,13 +79,30 @@ export function normalizeWhatsAppLoadedMedia(
       ? "audio/ogg; codecs=opus"
       : (media.contentType ?? "application/octet-stream");
   const fileName =
-    kind === "document" ? (media.fileName ?? mediaUrl?.split("/").pop() ?? "file") : undefined;
+    kind === "document"
+      ? (media.fileName ?? deriveWhatsAppDocumentFileName(mediaUrl) ?? "file")
+      : undefined;
   return {
     buffer: media.buffer,
     kind,
     mimetype,
     ...(fileName ? { fileName } : {}),
   };
+}
+
+function deriveWhatsAppDocumentFileName(mediaUrl: string | undefined): string | undefined {
+  if (!mediaUrl) {
+    return undefined;
+  }
+  try {
+    const parsed = new URL(mediaUrl);
+    const fileName = path.posix.basename(parsed.pathname);
+    return fileName ? decodeURIComponent(fileName) : undefined;
+  } catch {
+    const withoutQueryOrFragment = mediaUrl.split(/[?#]/, 1)[0] ?? "";
+    const fileName = withoutQueryOrFragment.split(/[\\/]/).pop();
+    return fileName || undefined;
+  }
 }
 
 export function isRetryableWhatsAppOutboundError(error: unknown): boolean {

@@ -462,6 +462,35 @@ describe("createWhatsAppOutboundBase", () => {
     );
   });
 
+  it("rejects structured-only payloads instead of reporting an empty successful send", async () => {
+    const sendMessageWhatsApp = vi.fn(async () => ({
+      messageId: "msg-1",
+      toJid: "15551234567@s.whatsapp.net",
+    }));
+    const outbound = createWhatsAppOutboundBase({
+      chunker: (text) => [text],
+      sendMessageWhatsApp,
+      sendPollWhatsApp: vi.fn(),
+      shouldLogVerbose: () => false,
+      resolveTarget: ({ to }) => ({ ok: true as const, to: to ?? "" }),
+    });
+
+    await expect(
+      outbound.sendPayload!({
+        cfg: {} as never,
+        to: "whatsapp:+15551234567",
+        text: "",
+        payload: {
+          channelData: { kind: "structured-only" },
+        },
+        deps: { sendWhatsApp: sendMessageWhatsApp },
+      }),
+    ).rejects.toThrow(
+      "WhatsApp sendPayload does not support structured-only payloads without text or media.",
+    );
+    expect(sendMessageWhatsApp).not.toHaveBeenCalled();
+  });
+
   it("threads cfg into sendPollWhatsApp call", async () => {
     const sendPollWhatsApp = vi.fn(async () => ({
       messageId: "wa-poll-1",

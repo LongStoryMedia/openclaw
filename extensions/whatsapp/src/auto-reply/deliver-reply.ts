@@ -10,6 +10,7 @@ import { loadWebMedia } from "../media.js";
 import {
   normalizeWhatsAppLoadedMedia,
   normalizeWhatsAppOutboundPayload,
+  normalizeWhatsAppPayloadTextPreservingIndentation,
   sendWhatsAppOutboundWithRetry,
 } from "../outbound-media-contract.js";
 import { buildQuotedMessageOptions, lookupInboundMessageMeta } from "../quoted-message.js";
@@ -44,7 +45,9 @@ export async function deliverWebReply(params: {
   }
   const tableMode = params.tableMode ?? "code";
   const chunkMode = params.chunkMode ?? "length";
-  const normalizedReply = normalizeWhatsAppOutboundPayload(replyResult);
+  const normalizedReply = normalizeWhatsAppOutboundPayload(replyResult, {
+    normalizeText: normalizeWhatsAppPayloadTextPreservingIndentation,
+  });
   const convertedText = markdownToWhatsApp(convertMarkdownTables(normalizedReply.text, tableMode));
   const textChunks = chunkMarkdownTextWithMode(convertedText, textLimit, chunkMode);
   const mediaList = normalizedReply.mediaUrls ?? [];
@@ -221,8 +224,7 @@ export async function deliverWebReply(params: {
       if (!isFirst) {
         return;
       }
-      const warning =
-        error instanceof Error ? `⚠️ Media failed: ${error.message}` : "⚠️ Media failed.";
+      const warning = "⚠️ Media failed.";
       const fallbackTextParts = [remainingText.shift() ?? caption ?? "", warning].filter(Boolean);
       const fallbackText = fallbackTextParts.join("\n");
       if (!fallbackText) {

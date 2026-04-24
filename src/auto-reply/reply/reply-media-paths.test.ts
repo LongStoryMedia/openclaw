@@ -120,7 +120,7 @@ describe("createReplyMediaPathNormalizer", () => {
       5 * 1024 * 1024,
       expect.any(Object),
     );
-    expect(result.text).toBe("⚠️ Media failed: media too large");
+    expect(result.text).toBe("⚠️ Media failed.");
   });
 
   it("drops host file URLs when no sandbox mapping applies", async () => {
@@ -334,7 +334,7 @@ describe("createReplyMediaPathNormalizer", () => {
     });
 
     expect(result).toMatchObject({
-      text: "WA_MEDIA_DM_07\n⚠️ Media failed: file not found",
+      text: "WA_MEDIA_DM_07\n⚠️ Media failed.",
       mediaUrl: undefined,
       mediaUrls: undefined,
     });
@@ -353,7 +353,7 @@ describe("createReplyMediaPathNormalizer", () => {
     });
 
     expect(result).toMatchObject({
-      text: "⚠️ Media failed: file not found",
+      text: "⚠️ Media failed.",
       mediaUrl: undefined,
       mediaUrls: undefined,
     });

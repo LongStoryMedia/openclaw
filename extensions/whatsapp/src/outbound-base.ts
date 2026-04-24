@@ -215,14 +215,24 @@ export function createWhatsAppOutboundBase({
   };
   return {
     ...outbound,
-    sendPayload: async (ctx) =>
-      await sendTextMediaPayload({
+    sendPayload: async (ctx) => {
+      const payload = normalizeWhatsAppOutboundPayload(ctx.payload, { normalizeText });
+      if (!payload.text && !(payload.mediaUrl || payload.mediaUrls?.length)) {
+        if (ctx.payload.interactive || ctx.payload.presentation || ctx.payload.channelData) {
+          throw new Error(
+            "WhatsApp sendPayload does not support structured-only payloads without text or media.",
+          );
+        }
+        return { channel: "whatsapp", messageId: "" };
+      }
+      return await sendTextMediaPayload({
         channel: "whatsapp",
         ctx: {
           ...ctx,
-          payload: normalizeWhatsAppOutboundPayload(ctx.payload, { normalizeText }),
+          payload,
         },
         adapter: outbound,
-      }),
+      });
+    },
   };
 }

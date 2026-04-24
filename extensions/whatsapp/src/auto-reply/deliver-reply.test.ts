@@ -276,6 +276,22 @@ describe("deliverWebReply", () => {
     expect(logVerbose).toHaveBeenCalled();
   });
 
+  it("preserves leading indentation after trimming only leading blank lines", async () => {
+    const msg = makeMsg();
+
+    await deliverWebReply({
+      replyResult: { text: "\n \n    indented block" },
+      msg,
+      maxMediaBytes: 1024 * 1024,
+      textLimit: 200,
+      replyLogger,
+      skipLog: true,
+    });
+
+    expect(msg.reply).toHaveBeenCalledTimes(1);
+    expect(msg.reply).toHaveBeenCalledWith("    indented block", undefined);
+  });
+
   it("keeps quote threading on media and trailing text chunks for a threaded reply", async () => {
     const msg = makeMsg();
     mockLoadedImageMedia();
@@ -369,6 +385,9 @@ describe("deliverWebReply", () => {
     expect(
       String((msg.reply as unknown as { mock: { calls: unknown[][] } }).mock.calls[0]?.[0]),
     ).toContain("⚠️ Media failed");
+    expect(
+      String((msg.reply as unknown as { mock: { calls: unknown[][] } }).mock.calls[0]?.[0]),
+    ).not.toContain("boom");
     expect(replyLogger.warn).toHaveBeenCalledWith(
       expect.objectContaining({ mediaUrl: "http://example.com/img.jpg" }),
       "failed to send web media reply",
@@ -433,6 +452,9 @@ describe("deliverWebReply", () => {
     expect(
       String((msg.reply as unknown as { mock: { calls: unknown[][] } }).mock.calls[0]?.[0]),
     ).toContain("⚠️ Media failed");
+    expect(
+      String((msg.reply as unknown as { mock: { calls: unknown[][] } }).mock.calls[0]?.[0]),
+    ).not.toContain("boom");
   });
 
   it("keeps payload and auto-reply media normalization in parity", async () => {
@@ -579,6 +601,39 @@ describe("deliverWebReply", () => {
         fileName: "x.bin",
         caption: "cap",
         mimetype: "application/octet-stream",
+      }),
+      undefined,
+    );
+  });
+
+  it("strips URL query and fragment data from derived document file names", async () => {
+    const msg = makeMsg();
+    (
+      loadWebMedia as unknown as { mockResolvedValueOnce: (v: unknown) => void }
+    ).mockResolvedValueOnce({
+      buffer: Buffer.from("pdf"),
+      contentType: "application/pdf",
+      kind: "file",
+    });
+
+    await deliverWebReply({
+      replyResult: {
+        text: "cap",
+        mediaUrl: "https://example.com/report.pdf?X-Amz-Signature=secret#frag",
+      },
+      msg,
+      maxMediaBytes: 1024 * 1024,
+      textLimit: 200,
+      replyLogger,
+      skipLog: true,
+    });
+
+    expect(msg.sendMedia).toHaveBeenCalledWith(
+      expect.objectContaining({
+        document: expect.any(Buffer),
+        fileName: "report.pdf",
+        caption: "cap",
+        mimetype: "application/pdf",
       }),
       undefined,
     );
